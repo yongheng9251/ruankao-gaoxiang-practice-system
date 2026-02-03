@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>软考高项刷题系统 - 全章节版</title>
+    
+    <!-- PWA相关标签（仅在HTTP/HTTPS环境下生效） -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="软考刷题">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#667eea">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23667eea'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='white'>📚</text></svg>">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="theme-color" content="#667eea">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        .header { 
+            background: white; padding: 30px; border-radius: 20px; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin-bottom: 25px;
+            text-align: center; position: relative; overflow: hidden;
+        }
+        .header::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        h1 { color: #333; font-size: 28px; margin-bottom: 10px; }
+        
+        .control-panel {
+            background: white; padding: 25px; border-radius: 15px; 
+            margin-bottom: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .chapter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 5px;
+        }
+        .chapter-item {
+            padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px;
+            cursor: pointer; transition: all 0.3s; font-size: 13px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .chapter-item:hover { border-color: #667eea; transform: translateY(-2px); }
+        .chapter-item.active { 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            color: white; border-color: #667eea;
+        }
+        .chapter-item .count { font-size: 11px; opacity: 0.7; }
+        
+        .mode-selector {
+            display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 25px;
+            cursor: pointer; font-size: 14px; font-weight: 600;
+            transition: all 0.3s; flex: 1; min-width: 120px;
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            color: white; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary { background: #f8f9fa; color: #666; border: 2px solid #e0e0e0; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+        
+        .stats-bar {
+            background: white; padding: 20px; border-radius: 12px;
+            margin-bottom: 20px; display: flex; justify-content: space-around;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 15px;
+        }
+        .stat-item { text-align: center; flex: 1; min-width: 80px; }
+        .stat-value { 
+            font-size: 24px; font-weight: bold; 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stat-label { color: #999; font-size: 12px; margin-top: 5px; }
+        
+        .progress-container { margin-bottom: 20px; }
+        .progress-bar {
+            width: 100%; height: 8px; background: #f0f0f0;
+            border-radius: 4px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s ease; border-radius: 4px;
+        }
+        .progress-text {
+            text-align: center; margin-top: 5px; color: #666; font-size: 13px;
+        }
+        
+        .question-card {
+            background: white; padding: 35px; border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            display: none; animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .question-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .question-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+        .tag {
+            padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: 600;
+        }
+        .tag-chapter { background: #e3f2fd; color: #1976d2; }
+        .tag-source { background: #f3e5f5; color: #7b1fa2; }
+        .tag-global-id { background: #e8f5e9; color: #388e3c; }
+        
+        .question-text {
+            font-size: 18px; line-height: 1.8; color: #333;
+            margin-bottom: 25px; font-weight: 500;
+        }
+        
+        .options { display: flex; flex-direction: column; gap: 12px; }
+        .option {
+            padding: 18px 20px; border: 2px solid #f0f0f0; border-radius: 12px;
+            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 15px;
+            background: #fafafa;
+        }
+        .option:hover { border-color: #667eea; background: #f5f7ff; transform: translateX(5px); }
+        .option.selected { border-color: #667eea; background: #e8ecff; }
+        .option.correct { border-color: #4caf50; background: #e8f5e9; }
+        .option.wrong { border-color: #f44336; background: #ffebee; }
+        .option-label {
+            width: 32px; height: 32px; border-radius: 50%; background: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: #666; border: 2px solid #ddd; flex-shrink: 0;
+        }
+        .option.selected .option-label { background: #667eea; color: white; border-color: #667eea; }
+        .option.correct .option-label { background: #4caf50; color: white; border-color: #4caf50; }
+        .option.wrong .option-label { background: #f44336; color: white; border-color: #f44336; }
+        
+        .analysis-box {
+            margin-top: 25px; padding: 25px; background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            border-radius: 15px; display: none; border-left: 5px solid #667eea;
+        }
+        .analysis-box.show { display: block; animation: fadeIn 0.5s; }
+        .analysis-title { font-weight: bold; color: #667eea; margin-bottom: 10px; }
+        
+        .navigation {
+            display: flex; justify-content: space-between; margin-top: 25px; gap: 15px;
+        }
+        .nav-btn {
+            flex: 1; padding: 15px; border-radius: 12px; border: none;
+            cursor: pointer; font-weight: 600; transition: all 0.3s;
+        }
+        .nav-prev { background: #f5f5f5; color: #666; }
+        .nav-next { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .nav-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        
+        .jump-selector {
+            display: flex; gap: 10px; margin-top: 15px; align-items: center;
+        }
+        .jump-input {
+            flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .floating-actions {
+            position: fixed; bottom: 30px; right: 30px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .fab {
+            width: 50px; height: 50px; border-radius: 50%; background: white;
+            border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            cursor: pointer; font-size: 20px; transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .fab:hover { transform: scale(1.1); }
+        
+        .loading {
+            text-align: center; padding: 40px; color: white; font-size: 16px;
+        }
+        .spinner {
+            display: inline-block; width: 40px; height: 40px;
+            border: 4px solid rgba(255,255,255,0.3); border-radius: 50%;
+            border-top-color: white; animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .chapter-grid { grid-template-columns: 1fr; max-height: 200px; }
+            .question-card { padding: 20px; }
+            .question-text { font-size: 16px; }
+            .floating-actions { bottom: 20px; right: 20px; }
+            
+            /* 移动端优化 */
+            .container { 
+                padding: 10px; 
+                max-width: 100%;
+            }
+            
+            .header {
+                padding: 20px;
+                border-radius: 15px;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            .control-panel {
+                padding: 20px;
+                border-radius: 12px;
+            }
+            
+            .chapter-item {
+                padding: 10px;
+                font-size: 12px;
+            }
+            
+            .btn {
+                padding: 10px 15px;
+                font-size: 13px;
+                min-width: 100px;
+            }
+            
+            .question-text {
+                font-size: 16px;
+                line-height: 1.6;
+            }
+            
+            .options {
+                gap: 10px;
+            }
+            
+            .option {
+                padding: 15px;
+                gap: 10px;
+            }
+            
+            .option-label {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+            }
+            
+            .navigation {
+                gap: 10px;
+            }
+            
+            .nav-btn {
+                padding: 12px;
+                font-size: 14px;
+            }
+            
+            .jump-input {
+                padding: 8px;
+                font-size: 13px;
+            }
+            
+            .floating-actions {
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .fab {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+            
+            .stats-bar {
+                padding: 15px;
+                gap: 10px;
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+            
+            .tag {
+                padding: 3px 10px;
+                font-size: 11px;
+            }
+            
+            .file-upload-area {
+                padding: 15px;
+            }
+            
+            .file-button {
+                padding: 8px 15px;
+                font-size: 14px;
+                margin: 5px 3px;
+            }
+            
+            .return-home-btn {
+                padding: 8px 15px;
+                font-size: 13px;
+            }
+        }
+        
+        /* 针对非常小的屏幕优化 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 18px;
+            }
+            
+            .chapter-grid {
+                max-height: 150px;
+            }
+            
+            .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-width: 80px;
+            }
+            
+            .question-text {
+                font-size: 15px;
+            }
+            
+            .option {
+                padding: 12px;
+            }
+            
+            .nav-btn {
+                padding: 10px;
+            }
+            
+            .stat-value {
+                font-size: 18px;
+            }
+        }
+        
+        /* 触摸优化 */
+        .option {
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        /* 隐藏滚动条 */
+        .chapter-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chapter-grid::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .chapter-grid::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .chapter-grid::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 软考高项智能刷题系统</h1>
+            <div id="globalStats">准备就绪，请加载题库</div>
+        </div>
+
+        <div id="fileUploadSection">
+            <div class="file-upload-area" id="dropZone">
+                <h3>📁 上传题库文件</h3>
+                <p>将 questions.json 文件拖拽至此，或点击下方按钮选择文件</p>
+                <input type="file" id="fileInput" class="file-input" accept=".json">
+                <button class="file-button" onclick="document.getElementById('fileInput').click()">选择文件</button>
+                <button class="file-button" id="loadSampleBtn">加载示例数据</button>
+            </div>
+        </div>
+
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <div>正在加载题库...</div>
+        </div>
+
+        <div id="mainPanel" style="display:none">
+            <div class="control-panel">
+                <div style="margin-bottom:15px;font-weight:600;color:#333">章节选择（多选）</div>
+                <div class="chapter-grid" id="chapterGrid">
+                    <!-- 动态加载章节 -->
+                </div>
+                
+                <div class="mode-selector">
+                    <button class="btn btn-primary" onclick="startPractice('sequence')">顺序练习</button>
+                    <button class="btn btn-secondary" onclick="startPractice('random')">随机练习</button>
+                    <button class="btn btn-secondary" onclick="startPractice('wrong')">❌ 错题重练</button>
+                    <button class="btn btn-secondary" onclick="startPractice('exam')">计时考试</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-bar" id="statsBar" style="display:none">
+            <div class="stat-item">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">总题数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statCurrent">0</div>
+                <div class="stat-label">当前</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statCorrect">0</div>
+                <div class="stat-label">正确</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statWrong">0</div>
+                <div class="stat-label">错误</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statRate">0%</div>
+                <div class="stat-label">正确率</div>
+            </div>
+        </div>
+
+        <div class="progress-container" id="progressContainer" style="display:none">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 / 0</div>
+        </div>
+
+        <div class="question-card" id="questionCard">
+            <div class="question-header">
+                <div class="question-meta">
+                    <span class="tag tag-chapter" id="qChapter">第1章</span>
+                    <span class="tag tag-source" id="qSource">教材</span>
+                    <span class="tag tag-global-id" id="qId">总第1题</span>
+                </div>
+            </div>
+            
+            <div class="question-text" id="qText"></div>
+            <div class="options" id="qOptions"></div>
+            
+            <div class="analysis-box" id="qAnalysis">
+                <div class="analysis-title">📖 答案解析</div>
+                <div id="qAnalysisText"></div>
+            </div>
+
+            <div class="navigation">
+                <button class="nav-btn nav-prev" onclick="prevQuestion()">← 上一题</button>
+                <button class="nav-btn nav-next" onclick="nextQuestion()">下一题 →</button>
+            </div>
+            
+            <div class="jump-selector">
+                <input type="number" class="jump-input" id="jumpInput" placeholder="输入题号跳转到..." min="1">
+                <button class="btn btn-secondary" onclick="jumpToQuestion()">跳转</button>
+            </div>
+            
+            <!-- 新增：返回首页按钮 -->
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="return-home-btn" onclick="returnHome()">返回首页</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="floating-actions">
+        <button class="fab" onclick="toggleMark()" title="标记/取消标记" id="markBtn">🔖</button>
+        <button class="fab" onclick="exportData()" title="导出进度">💾</button>
+        <button class="fab" onclick="document.getElementById('importFile').click()" title="导入进度">📂</button>
+        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(this)">
+        <!-- 新增：浮动返回首页按钮 -->
+        <button class="fab" onclick="returnHome()" title="返回首页">🏠</button>
+    </div>
+
+    <script>
+        let allQuestions = [];
+        let filteredQuestions = [];
+        let currentIndex = 0;
+        let selectedChapters = new Set();
+        let answeredQuestions = JSON.parse(localStorage.getItem('answered') || '{}');
+        let wrongQuestions = JSON.parse(localStorage.getItem('wrong') || '[]');
+        let markedQuestions = JSON.parse(localStorage.getItem('marked') || '[]');
+        let examTimer = null;
+        let examStartTime = null;
+
+        // 从文件加载题库
+        function loadQuestionsFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        resolve(jsonData);
+                    } catch(err) {
+                        reject(new Error('文件格式错误：不是有效的JSON文件'));
+                    }
+                };
+                reader.onerror = function() {
+                    reject(new Error('文件读取失败'));
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        // 从网络加载题库（备选方案）
+        async function loadQuestionsFromUrl(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch(err) {
+                console.warn('从URL加载失败:', err);
+                return null;
+            }
+        }
+
+        // 初始化页面
+        function initPage() {
+            // 设置拖拽事件
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    processFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    processFile(e.target.files[0]);
+                }
+            });
+            
+            // 加载示例数据按钮
+            document.getElementById('loadSampleBtn').addEventListener('click', loadSampleData);
+        }
+
+        // 处理文件
+        async function processFile(file) {
+            if (!file.name.endsWith('.json')) {
+                alert('请选择JSON格式的题库文件');
+                return;
+            }
+            
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('fileUploadSection').style.display = 'none';
+            
+            try {
+                allQuestions = await loadQuestionsFromFile(file);
+                finishLoading();
+            } catch(err) {
+                alert(`加载文件失败: ${err.message}`);
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('fileUploadSection').style.display = 'block';
+            }
+        }
+
+        // 加载示例数据
+        function loadSampleData() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('fileUploadSection').style.display = 'none';
+            
+            // 创建模拟数据
+            allQuestions = [
+                {
+                    id: 1,
+                    local_id: 1,
+                    source: "模拟题",
+                    chapter: "第一章 信息化发展",
+                    chapter_num: 1,
+                    section: "1.1 信息与信息化",
+                    question: "以下关于信息的描述，哪一项是正确的？",
+                    options: {
+                        "A": "信息是物质的一种属性",
+                        "B": "信息与载体密不可分",
+                        "C": "信息是一种能量",
+                        "D": "信息可以脱离载体而存在"
+                    },
+                    answer: "A",
+                    analysis: "信息是客观事物运动状态和特征的反映，是物质的一种属性。"
+                },
+                {
+                    id: 2,
+                    local_id: 2,
+                    source: "模拟题",
+                    chapter: "第一章 信息化发展",
+                    chapter_num: 1,
+                    section: "1.1 信息与信息化",
+                    question: "信息技术的核心是？",
+                    options: {
+                        "A": "计算机技术",
+                        "B": "通信技术",
+                        "C": "传感技术",
+                        "D": "控制技术"
+                    },
+                    answer: "A",
+                    analysis: "计算机技术是信息技术的核心，是信息处理的主要工具。"
+                },
+                {
+                    id: 3,
+                    local_id: 1,
+                    source: "模拟题",
+                    chapter: "第二章 信息系统综合知识",
+                    chapter_num: 2,
+                    section: "2.1 信息系统基础",
+                    question: "信息系统的基本组成要素包括？",
+                    options: {
+                        "A": "硬件、软件、数据",
+                        "B": "输入、处理、输出",
+                        "C": "人、硬件、软件、数据、流程",
+                        "D": "数据库、网络、用户"
+                    },
+                    answer: "C",
+                    analysis: "信息系统的基本组成要素包括人、硬件、软件、数据和流程五个方面。"
+                }
+            ];
+            
+            setTimeout(() => {
+                finishLoading();
+            }, 1000);
+        }
+
+        // 完成加载
+        function finishLoading() {
+            if (allQuestions.length === 0) {
+                alert('题库为空或格式不正确');
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('fileUploadSection').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('mainPanel').style.display = 'block';
+            
+            // 更新全局统计
+            const uniqueChapters = [...new Set(allQuestions.map(q => q.chapter))].sort((a,b) => {
+                const numA = parseInt(a.match(/\d+/)?.[0]) || 0;
+                const numB = parseInt(b.match(/\d+/)?.[0]) || 0;
+                return numA - numB;
+            });
+            
+            document.getElementById('globalStats').textContent = 
+                `共 ${allQuestions.length} 道题目 · ${uniqueChapters.length} 个章节 · 已答 ${Object.keys(answeredQuestions).length} 题`;
+            
+            renderChapterGrid(uniqueChapters);
+        }
+
+        function renderChapterGrid(chapters) {
+            const grid = document.getElementById('chapterGrid');
+            
+            // 添加"全选"按钮
+            const allBtn = document.createElement('div');
+            allBtn.className = 'chapter-item active';
+            allBtn.innerHTML = `<span>全部章节</span><span class="count">${allQuestions.length}题</span>`;
+            allBtn.onclick = () => toggleAllChapters(allBtn);
+            grid.appendChild(allBtn);
+            
+            chapters.forEach(ch => {
+                const count = allQuestions.filter(q => q.chapter === ch).length;
+                const div = document.createElement('div');
+                div.className = 'chapter-item';
+                div.innerHTML = `<span>${ch}</span><span class="count">${count}题</span>`;
+                div.onclick = () => toggleChapter(div, ch);
+                grid.appendChild(div);
+            });
+        }
+
+        function toggleAllChapters(btn) {
+            const isActive = btn.classList.contains('active');
+            document.querySelectorAll('.chapter-item').forEach(item => {
+                item.classList.toggle('active', !isActive);
+            });
+            if (!isActive) {
+                selectedChapters = new Set(allQuestions.map(q => q.chapter));
+            } else {
+                selectedChapters.clear();
+            }
+        }
+
+        function toggleChapter(element, chapter) {
+            element.classList.toggle('active');
+            if (element.classList.contains('active')) {
+                selectedChapters.add(chapter);
+            } else {
+                selectedChapters.delete(chapter);
+            }
+            
+            // 如果取消一个，也要取消"全选"状态
+            if (!element.classList.contains('active')) {
+                document.querySelector('.chapter-item:first-child').classList.remove('active');
+            }
+        }
+
+        function startPractice(mode) {
+            if (selectedChapters.size === 0 && mode !== 'wrong') {
+                alert('请至少选择一个章节');
+                return;
+            }
+
+            filteredQuestions = allQuestions.filter(q => 
+                selectedChapters.has(q.chapter) || selectedChapters.size === 0
+            );
+
+            if (mode === 'wrong') {
+                filteredQuestions = allQuestions.filter(q => wrongQuestions.includes(q.id));
+                if (filteredQuestions.length === 0) {
+                    alert('暂无错题！');
+                    return;
+                }
+            } else if (mode === 'random') {
+                filteredQuestions = filteredQuestions.sort(() => Math.random() - 0.5);
+            } else if (mode === 'exam') {
+                // 模拟考试：75题，75分钟
+                filteredQuestions = filteredQuestions.slice(0, 75);
+                examStartTime = Date.now();
+                examTimer = setInterval(updateExamTimer, 1000);
+            }
+
+            document.getElementById('mainPanel').style.display = 'none';
+            document.getElementById('statsBar').style.display = 'flex';
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('questionCard').style.display = 'block';
+            
+            currentIndex = 0;
+            showQuestion();
+            updateStats();
+        }
+
+        function updateExamTimer() {
+            const elapsed = Math.floor((Date.now() - examStartTime) / 1000);
+            const remaining = 75 * 60 - elapsed;
+            if (remaining <= 0) {
+                clearInterval(examTimer);
+                alert('考试时间到！');
+                return;
+            }
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            document.querySelector('.header h1').textContent = 
+                `📚 模拟考试 - 剩余${mins}:${secs.toString().padStart(2,'0')}`;
+        }
+
+        function showQuestion() {
+            const q = filteredQuestions[currentIndex];
+            if (!q) return;
+
+            document.getElementById('qChapter').textContent = q.chapter;
+            document.getElementById('qSource').textContent = q.source;
+            document.getElementById('qId').textContent = `总第${q.id}题`;
+            document.getElementById('qText').textContent = q.question;
+            
+            // 更新收藏按钮状态
+            const markBtn = document.getElementById('markBtn');
+            markBtn.textContent = markedQuestions.includes(q.id) ? '🔴' : '🔖';
+            markBtn.style.color = markedQuestions.includes(q.id) ? 'red' : 'black';
+            
+            const optsContainer = document.getElementById('qOptions');
+            optsContainer.innerHTML = '';
+            Object.entries(q.options).forEach(([key, val]) => {
+                const div = document.createElement('div');
+                div.className = 'option';
+                div.innerHTML = `
+                    <div class="option-label">${key}</div>
+                    <div>${val}</div>
+                `;
+                div.onclick = () => selectOption(key, q.answer, div, q.id);
+                optsContainer.appendChild(div);
+            });
+
+            // 恢复答题状态
+            const answered = answeredQuestions[q.id];
+            if (answered) {
+                const opts = document.querySelectorAll('.option');
+                opts.forEach((opt, idx) => {
+                    const key = Object.keys(q.options)[idx];
+                    if (key === q.answer) opt.classList.add('correct');
+                    if (key === answered && key !== q.answer) opt.classList.add('wrong');
+                });
+                showAnalysis(q);
+            } else {
+                document.getElementById('qAnalysis').classList.remove('show');
+            }
+
+            updateProgress();
+        }
+
+        function selectOption(selected, correct, element, qid) {
+            if (answeredQuestions[qid]) return;
+            
+            answeredQuestions[qid] = selected;
+            localStorage.setItem('answered', JSON.stringify(answeredQuestions));
+
+            const q = filteredQuestions[currentIndex];
+            
+            if (selected === correct) {
+                element.classList.add('correct');
+                wrongQuestions = wrongQuestions.filter(id => id !== qid);
+            } else {
+                element.classList.add('wrong');
+                document.querySelectorAll('.option').forEach((opt, idx) => {
+                    if (Object.keys(q.options)[idx] === correct) opt.classList.add('correct');
+                });
+                if (!wrongQuestions.includes(qid)) wrongQuestions.push(qid);
+            }
+            localStorage.setItem('wrong', JSON.stringify(wrongQuestions));
+            
+            showAnalysis(q);
+            updateStats();
+        }
+
+        function showAnalysis(q) {
+            document.getElementById('qAnalysis').classList.add('show');
+            document.getElementById('qAnalysisText').innerHTML = 
+                `<strong>答案：${q.answer}</strong><br><br>${q.analysis || '暂无解析'}`;
+        }
+
+        function prevQuestion() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentIndex < filteredQuestions.length - 1) {
+                currentIndex++;
+                showQuestion();
+            } else {
+                if (examTimer) clearInterval(examTimer);
+                if (confirm('已完成所有题目！是否返回首页？')) {
+                    returnHome();
+                }
+            }
+        }
+
+        function jumpToQuestion() {
+            const input = document.getElementById('jumpInput');
+            const num = parseInt(input.value);
+            if (num && num > 0 && num <= filteredQuestions.length) {
+                currentIndex = num - 1;
+                showQuestion();
+                input.value = '';
+            } else {
+                alert('题号超出范围');
+            }
+        }
+
+        function toggleMark() {
+            const q = filteredQuestions[currentIndex];
+            if (markedQuestions.includes(q.id)) {
+                markedQuestions = markedQuestions.filter(id => id !== q.id);
+            } else {
+                markedQuestions.push(q.id);
+            }
+            localStorage.setItem('marked', JSON.stringify(markedQuestions));
+            showQuestion();
+        }
+
+        function updateStats() {
+            const total = filteredQuestions.length;
+            const current = currentIndex + 1;
+            const ids = filteredQuestions.map(q => q.id);
+            const currentAnswered = Object.entries(answeredQuestions).filter(([id, ans]) => ids.includes(Number(id)));
+            const correct = currentAnswered.filter(([id, ans]) => {
+                const q = allQuestions.find(x => x.id == id);
+                return q && q.answer === ans;
+            }).length;
+            const wrong = currentAnswered.length - correct;
+            const rate = currentAnswered.length ? Math.round(correct / currentAnswered.length * 100) : 0;
+            
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statCurrent').textContent = current;
+            document.getElementById('statCorrect').textContent = correct;
+            document.getElementById('statWrong').textContent = wrong;
+            document.getElementById('statRate').textContent = rate + '%';
+        }
+
+        function updateProgress() {
+            const progress = ((currentIndex + 1) / filteredQuestions.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = `${currentIndex + 1} / ${filteredQuestions.length}`;
+        }
+
+        function exportData() {
+            const data = {
+                answeredQuestions,
+                wrongQuestions,
+                markedQuestions,
+                exportTime: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `软考进度_${new Date().toLocaleDateString()}.json`;
+            a.click();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    Object.assign(answeredQuestions, data.answeredQuestions || {});
+                    wrongQuestions = data.wrongQuestions || wrongQuestions;
+                    markedQuestions = data.markedQuestions || markedQuestions;
+                    localStorage.setItem('answered', JSON.stringify(answeredQuestions));
+                    localStorage.setItem('wrong', JSON.stringify(wrongQuestions));
+                    localStorage.setItem('marked', JSON.stringify(markedQuestions));
+                    alert('导入成功！');
+                    location.reload();
+                } catch(err) {
+                    alert('文件格式错误');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 新增：返回首页功能
+        function returnHome() {
+            if (examTimer) clearInterval(examTimer);
+            
+            // 重置所有状态
+            document.getElementById('mainPanel').style.display = 'block';
+            document.getElementById('statsBar').style.display = 'none';
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('questionCard').style.display = 'none';
+            
+            // 重置进度条
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressText').textContent = '0 / 0';
+            
+            // 重置题目卡内容
+            document.getElementById('qText').textContent = '';
+            document.getElementById('qOptions').innerHTML = '';
+            document.getElementById('qAnalysis').classList.remove('show');
+            document.getElementById('qAnalysisText').innerHTML = '';
+            
+            // 重置统计
+            document.getElementById('statTotal').textContent = '0';
+            document.getElementById('statCurrent').textContent = '0';
+            document.getElementById('statCorrect').textContent = '0';
+            document.getElementById('statWrong').textContent = '0';
+            document.getElementById('statRate').textContent = '0%';
+            
+            // 重置索引和过滤问题
+            currentIndex = 0;
+            filteredQuestions = [];
+            
+            // 更新全局统计
+            const uniqueChapters = [...new Set(allQuestions.map(q => q.chapter))].sort((a,b) => {
+                const numA = parseInt(a.match(/\d+/)?.[0]) || 0;
+                const numB = parseInt(b.match(/\d+/)?.[0]) || 0;
+                return numA - numB;
+            });
+            
+            document.getElementById('globalStats').textContent = 
+                `共 ${allQuestions.length} 道题目 · ${uniqueChapters.length} 个章节 · 已答 ${Object.keys(answeredQuestions).length} 题`;
+        }
+
+        // 滑动手势支持
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, false);
+
+        document.addEventListener('touchend', (e) => {
+            if (document.getElementById('questionCard').style.display === 'none') return;
+            
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const diffX = touchStartX - touchEndX;
+            const diffY = touchStartY - touchEndY;
+            
+            // 水平滑动超过阈值才触发
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                if (diffX > 0) {
+                    nextQuestion(); // 向左滑动，下一题
+                } else {
+                    prevQuestion(); // 向右滑动，上一题
+                }
+            }
+        }, false);
+
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('questionCard').style.display === 'none') return;
+            if (e.key === 'ArrowLeft') prevQuestion();
+            if (e.key === 'ArrowRight') nextQuestion();
+            if (e.key >= 'A' && e.key <= 'D') {
+                const opts = document.querySelectorAll('.option');
+                const idx = e.key.charCodeAt(0) - 65;
+                if (opts[idx]) opts[idx].click();
+            }
+            // 添加 ESC 键返回首页
+            if (e.key === 'Escape') returnHome();
+        });
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>
