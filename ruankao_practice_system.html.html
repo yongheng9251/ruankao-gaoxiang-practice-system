@@ -662,6 +662,7 @@
             }
             
             document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('fileUploadSection').style.display = 'none'; // 隐藏上传区域
             document.getElementById('mainPanel').style.display = 'block';
             
             // 更新全局统计
@@ -1034,7 +1035,21 @@
         });
 
         // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', initPage);
+        document.addEventListener('DOMContentLoaded', async function() {
+            initPage();
+            // 新增：自动加载题库
+            try {
+                // 替换为你的 GitHub Pages 地址 + /questions.json
+                const url = 'https://yongheng9251.github.io/ruankao-gaoxiang-practice-system/questions.json';
+                const data = await loadQuestionsFromUrl(url);
+                if (data && data.length > 0) {
+                    allQuestions = data;
+                    finishLoading();
+                }
+            } catch (err) {
+                console.log('自动加载失败，请手动上传题库文件');
+            }
+        });
     </script>
 </body>
 </html>
