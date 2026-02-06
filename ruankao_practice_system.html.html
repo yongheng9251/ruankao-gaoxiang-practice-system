@@ -58,6 +58,11 @@
         .chapter-item.active { 
             background: linear-gradient(135deg, #667eea, #764ba2); 
             color: white; border-color: #667eea;
+            animation: highlight 0.3s ease;
+        }
+        @keyframes highlight {
+            from { transform: scale(0.98); opacity: 0.8; }
+            to { transform: scale(1); opacity: 1; }
         }
         .chapter-item .count { font-size: 11px; opacity: 0.7; }
         
@@ -104,7 +109,7 @@
         
         .question-card {
             background: white; padding: 35px; border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.12);
             display: none; animation: slideIn 0.3s ease;
         }
         @keyframes slideIn {
@@ -132,7 +137,7 @@
         
         .options { display: flex; flex-direction: column; gap: 12px; }
         .option {
-            padding: 18px 20px; border: 2px solid #f0f0f0; border-radius: 12px;
+            padding: 20px 22px; border: 2px solid #f0f0f0; border-radius: 12px;
             cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 15px;
             background: #fafafa;
         }
@@ -205,7 +210,6 @@
             .question-text { font-size: 16px; }
             .floating-actions { bottom: 20px; right: 20px; }
             
-            /* 移动端优化 */
             .container { 
                 padding: 10px; 
                 max-width: 100%;
@@ -311,7 +315,6 @@
             }
         }
         
-        /* 针对非常小的屏幕优化 */
         @media (max-width: 480px) {
             .container {
                 padding: 5px;
@@ -352,13 +355,11 @@
             }
         }
         
-        /* 触摸优化 */
         .option {
             touch-action: manipulation;
             user-select: none;
         }
         
-        /* 隐藏滚动条 */
         .chapter-grid::-webkit-scrollbar {
             width: 6px;
         }
@@ -402,6 +403,8 @@
 
         <div id="mainPanel" style="display:none">
             <div class="control-panel">
+                <button class="btn btn-primary" id="resumeBtn" style="display:none; margin-bottom:15px; width:100%;">继续上次练习</button>
+                
                 <div style="margin-bottom:15px;font-weight:600;color:#333">章节选择（多选）</div>
                 <div class="chapter-grid" id="chapterGrid">
                     <!-- 动态加载章节 -->
@@ -412,6 +415,7 @@
                     <button class="btn btn-secondary" onclick="startPractice('random')">随机练习</button>
                     <button class="btn btn-secondary" onclick="startPractice('wrong')">❌ 错题重练</button>
                     <button class="btn btn-secondary" onclick="startPractice('exam')">计时考试</button>
+                    <button class="btn btn-secondary" onclick="startPractice('collected')">收藏夹练习</button>
                 </div>
             </div>
         </div>
@@ -453,6 +457,7 @@
                     <span class="tag tag-source" id="qSource">教材</span>
                     <span class="tag tag-global-id" id="qId">总第1题</span>
                 </div>
+                <button class="btn" id="collectBtn" style="padding:6px 12px; font-size:12px; border-radius:8px;">收藏题目</button>
             </div>
             
             <div class="question-text" id="qText"></div>
@@ -473,7 +478,6 @@
                 <button class="btn btn-secondary" onclick="jumpToQuestion()">跳转</button>
             </div>
             
-            <!-- 新增：返回首页按钮 -->
             <div style="text-align: center; margin-top: 20px;">
                 <button class="return-home-btn" onclick="returnHome()">返回首页</button>
             </div>
@@ -485,7 +489,7 @@
         <button class="fab" onclick="exportData()" title="导出进度">💾</button>
         <button class="fab" onclick="document.getElementById('importFile').click()" title="导入进度">📂</button>
         <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(this)">
-        <!-- 新增：浮动返回首页按钮 -->
+        <button class="fab" onclick="showWrongAnalysis()" title="错题解析汇总">📋</button>
         <button class="fab" onclick="returnHome()" title="返回首页">🏠</button>
     </div>
 
@@ -497,10 +501,11 @@
         let answeredQuestions = JSON.parse(localStorage.getItem('answered') || '{}');
         let wrongQuestions = JSON.parse(localStorage.getItem('wrong') || '[]');
         let markedQuestions = JSON.parse(localStorage.getItem('marked') || '[]');
+        let collectedQuestions = JSON.parse(localStorage.getItem('collected') || '[]');
         let examTimer = null;
         let examStartTime = null;
+        let currentMode = '';
 
-        // 从文件加载题库
         function loadQuestionsFromFile(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -519,7 +524,6 @@
             });
         }
 
-        // 从网络加载题库（备选方案）
         async function loadQuestionsFromUrl(url) {
             try {
                 const response = await fetch(url);
@@ -533,9 +537,7 @@
             }
         }
 
-        // 初始化页面
         function initPage() {
-            // 设置拖拽事件
             const dropZone = document.getElementById('dropZone');
             const fileInput = document.getElementById('fileInput');
             
@@ -563,11 +565,9 @@
                 }
             });
             
-            // 加载示例数据按钮
             document.getElementById('loadSampleBtn').addEventListener('click', loadSampleData);
         }
 
-        // 处理文件
         async function processFile(file) {
             if (!file.name.endsWith('.json')) {
                 alert('请选择JSON格式的题库文件');
@@ -587,12 +587,10 @@
             }
         }
 
-        // 加载示例数据
         function loadSampleData() {
             document.getElementById('loadingState').style.display = 'block';
             document.getElementById('fileUploadSection').style.display = 'none';
             
-            // 创建模拟数据
             allQuestions = [
                 {
                     id: 1,
@@ -652,7 +650,6 @@
             }, 1000);
         }
 
-        // 完成加载
         function finishLoading() {
             if (allQuestions.length === 0) {
                 alert('题库为空或格式不正确');
@@ -662,10 +659,9 @@
             }
             
             document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('fileUploadSection').style.display = 'none'; // 隐藏上传区域
+            document.getElementById('fileUploadSection').style.display = 'none';
             document.getElementById('mainPanel').style.display = 'block';
             
-            // 更新全局统计
             const uniqueChapters = [...new Set(allQuestions.map(q => q.chapter))].sort((a,b) => {
                 const numA = parseInt(a.match(/\d+/)?.[0]) || 0;
                 const numB = parseInt(b.match(/\d+/)?.[0]) || 0;
@@ -676,23 +672,40 @@
                 `共 ${allQuestions.length} 道题目 · ${uniqueChapters.length} 个章节 · 已答 ${Object.keys(answeredQuestions).length} 题`;
             
             renderChapterGrid(uniqueChapters);
+            
+            const lastProgress = JSON.parse(localStorage.getItem('practiceProgress'));
+            if (lastProgress) {
+                document.getElementById('resumeBtn').style.display = 'block';
+                document.getElementById('resumeBtn').onclick = function() {
+                    selectedChapters = new Set(lastProgress.chapters);
+                    document.querySelectorAll('.chapter-item').forEach(item => {
+                        const chapterName = item.querySelector('span').textContent;
+                        item.classList.toggle('active', selectedChapters.has(chapterName));
+                    });
+                    startPractice(lastProgress.mode);
+                    currentIndex = lastProgress.index;
+                    showQuestion();
+                };
+            }
         }
 
         function renderChapterGrid(chapters) {
             const grid = document.getElementById('chapterGrid');
+            grid.innerHTML = '';
             
-            // 添加"全选"按钮
             const allBtn = document.createElement('div');
+            const allWrongCount = wrongQuestions.length;
             allBtn.className = 'chapter-item active';
-            allBtn.innerHTML = `<span>全部章节</span><span class="count">${allQuestions.length}题</span>`;
+            allBtn.innerHTML = `<span>全部章节</span><span class="count">${allWrongCount}错题 / ${allQuestions.length}题</span>`;
             allBtn.onclick = () => toggleAllChapters(allBtn);
             grid.appendChild(allBtn);
             
             chapters.forEach(ch => {
-                const count = allQuestions.filter(q => q.chapter === ch).length;
+                const chapterQuestions = allQuestions.filter(q => q.chapter === ch);
+                const wrongCount = chapterQuestions.filter(q => wrongQuestions.includes(q.id)).length;
                 const div = document.createElement('div');
                 div.className = 'chapter-item';
-                div.innerHTML = `<span>${ch}</span><span class="count">${count}题</span>`;
+                div.innerHTML = `<span>${ch}</span><span class="count">${wrongCount}错题 / ${chapterQuestions.length}题</span>`;
                 div.onclick = () => toggleChapter(div, ch);
                 grid.appendChild(div);
             });
@@ -718,14 +731,14 @@
                 selectedChapters.delete(chapter);
             }
             
-            // 如果取消一个，也要取消"全选"状态
             if (!element.classList.contains('active')) {
                 document.querySelector('.chapter-item:first-child').classList.remove('active');
             }
         }
 
         function startPractice(mode) {
-            if (selectedChapters.size === 0 && mode !== 'wrong') {
+            currentMode = mode;
+            if (selectedChapters.size === 0 && mode !== 'wrong' && mode !== 'collected') {
                 alert('请至少选择一个章节');
                 return;
             }
@@ -743,10 +756,15 @@
             } else if (mode === 'random') {
                 filteredQuestions = filteredQuestions.sort(() => Math.random() - 0.5);
             } else if (mode === 'exam') {
-                // 模拟考试：75题，75分钟
                 filteredQuestions = filteredQuestions.slice(0, 75);
                 examStartTime = Date.now();
                 examTimer = setInterval(updateExamTimer, 1000);
+            } else if (mode === 'collected') {
+                filteredQuestions = allQuestions.filter(q => collectedQuestions.includes(q.id));
+                if (filteredQuestions.length === 0) {
+                    alert('暂无收藏题目！');
+                    return;
+                }
             }
 
             document.getElementById('mainPanel').style.display = 'none';
@@ -782,10 +800,30 @@
             document.getElementById('qId').textContent = `总第${q.id}题`;
             document.getElementById('qText').textContent = q.question;
             
-            // 更新收藏按钮状态
-            const markBtn = document.getElementById('markBtn');
-            markBtn.textContent = markedQuestions.includes(q.id) ? '🔴' : '🔖';
-            markBtn.style.color = markedQuestions.includes(q.id) ? 'red' : 'black';
+            const collectBtn = document.getElementById('collectBtn');
+            if (collectedQuestions.includes(q.id)) {
+                collectBtn.textContent = '已收藏';
+                collectBtn.style.background = '#f44336';
+                collectBtn.style.color = 'white';
+            } else {
+                collectBtn.textContent = '收藏题目';
+                collectBtn.style.background = '#f8f9fa';
+                collectBtn.style.color = '#666';
+            }
+            collectBtn.onclick = function() {
+                if (collectedQuestions.includes(q.id)) {
+                    collectedQuestions = collectedQuestions.filter(id => id !== q.id);
+                    this.textContent = '收藏题目';
+                    this.style.background = '#f8f9fa';
+                    this.style.color = '#666';
+                } else {
+                    collectedQuestions.push(q.id);
+                    this.textContent = '已收藏';
+                    this.style.background = '#f44336';
+                    this.style.color = 'white';
+                }
+                localStorage.setItem('collected', JSON.stringify(collectedQuestions));
+            };
             
             const optsContainer = document.getElementById('qOptions');
             optsContainer.innerHTML = '';
@@ -800,7 +838,6 @@
                 optsContainer.appendChild(div);
             });
 
-            // 恢复答题状态
             const answered = answeredQuestions[q.id];
             if (answered) {
                 const opts = document.querySelectorAll('.option');
@@ -815,6 +852,12 @@
             }
 
             updateProgress();
+            
+            localStorage.setItem('practiceProgress', JSON.stringify({
+                chapters: Array.from(selectedChapters),
+                mode: currentMode,
+                index: currentIndex
+            }));
         }
 
         function selectOption(selected, correct, element, qid) {
@@ -919,6 +962,7 @@
                 answeredQuestions,
                 wrongQuestions,
                 markedQuestions,
+                collectedQuestions,
                 exportTime: new Date().toISOString()
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
@@ -939,9 +983,11 @@
                     Object.assign(answeredQuestions, data.answeredQuestions || {});
                     wrongQuestions = data.wrongQuestions || wrongQuestions;
                     markedQuestions = data.markedQuestions || markedQuestions;
+                    collectedQuestions = data.collectedQuestions || collectedQuestions;
                     localStorage.setItem('answered', JSON.stringify(answeredQuestions));
                     localStorage.setItem('wrong', JSON.stringify(wrongQuestions));
                     localStorage.setItem('marked', JSON.stringify(markedQuestions));
+                    localStorage.setItem('collected', JSON.stringify(collectedQuestions));
                     alert('导入成功！');
                     location.reload();
                 } catch(err) {
@@ -951,38 +997,31 @@
             reader.readAsText(file);
         }
 
-        // 新增：返回首页功能
         function returnHome() {
             if (examTimer) clearInterval(examTimer);
             
-            // 重置所有状态
             document.getElementById('mainPanel').style.display = 'block';
             document.getElementById('statsBar').style.display = 'none';
             document.getElementById('progressContainer').style.display = 'none';
             document.getElementById('questionCard').style.display = 'none';
             
-            // 重置进度条
             document.getElementById('progressFill').style.width = '0%';
             document.getElementById('progressText').textContent = '0 / 0';
             
-            // 重置题目卡内容
             document.getElementById('qText').textContent = '';
             document.getElementById('qOptions').innerHTML = '';
             document.getElementById('qAnalysis').classList.remove('show');
             document.getElementById('qAnalysisText').innerHTML = '';
             
-            // 重置统计
             document.getElementById('statTotal').textContent = '0';
             document.getElementById('statCurrent').textContent = '0';
             document.getElementById('statCorrect').textContent = '0';
             document.getElementById('statWrong').textContent = '0';
             document.getElementById('statRate').textContent = '0%';
             
-            // 重置索引和过滤问题
             currentIndex = 0;
             filteredQuestions = [];
             
-            // 更新全局统计
             const uniqueChapters = [...new Set(allQuestions.map(q => q.chapter))].sort((a,b) => {
                 const numA = parseInt(a.match(/\d+/)?.[0]) || 0;
                 const numB = parseInt(b.match(/\d+/)?.[0]) || 0;
@@ -993,7 +1032,6 @@
                 `共 ${allQuestions.length} 道题目 · ${uniqueChapters.length} 个章节 · 已答 ${Object.keys(answeredQuestions).length} 题`;
         }
 
-        // 滑动手势支持
         let touchStartX = 0;
         let touchStartY = 0;
 
@@ -1011,12 +1049,11 @@
             const diffX = touchStartX - touchEndX;
             const diffY = touchStartY - touchEndY;
             
-            // 水平滑动超过阈值才触发
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
                 if (diffX > 0) {
-                    nextQuestion(); // 向左滑动，下一题
+                    nextQuestion();
                 } else {
-                    prevQuestion(); // 向右滑动，上一题
+                    prevQuestion();
                 }
             }
         }, false);
@@ -1030,16 +1067,34 @@
                 const idx = e.key.charCodeAt(0) - 65;
                 if (opts[idx]) opts[idx].click();
             }
-            // 添加 ESC 键返回首页
             if (e.key === 'Escape') returnHome();
         });
 
-        // 页面加载完成后初始化
+        function showWrongAnalysis() {
+            const wrongList = allQuestions.filter(q => wrongQuestions.includes(q.id));
+            if (wrongList.length === 0) {
+                alert('暂无错题！');
+                return;
+            }
+            let html = `<h3 style="margin-bottom:20px;">错题解析汇总（共${wrongList.length}题）</h3>`;
+            wrongList.forEach((q, i) => {
+                html += `
+                    <div style="margin:15px 0; padding:15px; border:1px solid #f44336; border-radius:10px; background:white; color:#333;">
+                        <p style="font-weight:bold; margin-bottom:8px;">${i+1}. ${q.question}</p>
+                        <p style="margin-bottom:4px;"><span style="color:#f44336;">答案：</span>${q.answer}</p>
+                        <p><span style="color:#f44336;">解析：</span>${q.analysis || '暂无解析'}</p>
+                    </div>
+                `;
+            });
+            const modal = document.createElement('div');
+            modal.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); padding:20px; overflow-y:auto; z-index:999;';
+            modal.innerHTML = html + '<button onclick="this.parentElement.remove()" style="margin-top:20px; padding:10px 20px; background:#667eea; border:none; border-radius:8px; color:white; font-size:16px;">关闭</button>';
+            document.body.appendChild(modal);
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
             initPage();
-            // 新增：自动加载题库
             try {
-                // 替换为你的 GitHub Pages 地址 + /questions.json
                 const url = 'https://yongheng9251.github.io/ruankao-gaoxiang-practice-system/questions.json';
                 const data = await loadQuestionsFromUrl(url);
                 if (data && data.length > 0) {
